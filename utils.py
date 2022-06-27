@@ -80,10 +80,9 @@ def get_double_actors(actor1, actor2):
     возвращает список тех, кто играет с ними в паре больше 2 раз.
     """
     sql = f"""
-        SELECT netflix.cast , COUNT(netflix.cast) 
+        SELECT netflix.cast  
         FROM netflix
         WHERE netflix.cast LIKE '%{actor1}%' AND netflix.cast LIKE '%{actor2}%' 
-        GROUP BY  netflix.cast
         """
     result = []
 
@@ -120,3 +119,4 @@ def get_title_for_tyl(movie_type, year, genre):
         result.append(dict(item))
 
     return json.dumps(result, ensure_ascii=False, indent=4)
+
