@@ -8,19 +8,19 @@ def get_value_from_db(sql):
     with sqlite3.connect("netflix.db") as connection:
         connection.row_factory = sqlite3.Row
 
-        result = connection.execute(sql).fetchall()
+        result = connection.execute(*sql).fetchall()
         return result
 
 
 def search_by_title(title):
     """поиск в БД по названию фильма"""
-    sql = f"""
+    sql = ("""
     select title, country, release_year,listed_in as genre, description
     from netflix
-    where title = '{title}'
+    where title = ?
     order by release_year DESC
     limit 1
-    """
+    """, (title,))
     result = get_value_from_db(sql)
 
     for item in result:
@@ -29,12 +29,12 @@ def search_by_title(title):
 
 def search_by_release_year(year1, year2):
     """поиск в БД по диапазону лет выпуска"""
-    sql = f"""
+    sql = ("""
     SELECT title, release_year
     from netflix
-    WHERE release_year BETWEEN {year1} and {year2}
+    WHERE release_year BETWEEN ? and ?
     LIMIT 100
-    """
+    """, (year1, year2))
     result = get_value_from_db(sql)
 
     response = [dict(item) for item in result]
@@ -44,16 +44,17 @@ def search_by_release_year(year1, year2):
 def get_by_rating(rating):
     """Принимает  список допустимых рейтингов и возвращала данные """
     rating_dict = {
-        "children": ("G", "G"),
+        "children": ("G", "G", ""),
         "family": ("G", "PG", "PG-13"),
-        "adult": ("R", "NC-17")
+        "adult": ("R", "NC-17", "")
     }
+    r_d = rating_dict.get(rating)
 
-    sql = f"""
+    sql = ("""
     SELECT title, rating, description
     FROM netflix
-    WHERE rating in {rating_dict.get(rating)}
-    """
+    WHERE rating in (?, ?, ?)
+    """, r_d)
     result = get_value_from_db(sql)
     response = [dict(item) for item in result]
     return response
@@ -62,13 +63,13 @@ def get_by_rating(rating):
 def get_by_genre(genre):
     """Получает данные из БД по жанру"""
 
-    sql = f"""
+    sql = ("""
     SELECT title, description
     FROM netflix
-    WHERE listed_in LIKE '%{genre}%'
+    WHERE listed_in LIKE ?
     ORDER BY listed_in DESC 
     LIMIT 10
-    """
+    """, (f"%{genre}%",))
     result = get_value_from_db(sql)
     response = [dict(item) for item in result]
     return response
@@ -79,11 +80,11 @@ def get_double_actors(actor1, actor2):
     получает в качестве аргумента имена двух актеров,
     возвращает список тех, кто играет с ними в паре больше 2 раз.
     """
-    sql = f"""
+    sql = ("""
         SELECT netflix.cast  
         FROM netflix
-        WHERE netflix.cast LIKE '%{actor1}%' AND netflix.cast LIKE '%{actor2}%' 
-        """
+        WHERE netflix.cast LIKE ? AND netflix.cast LIKE ? 
+        """, (f"%{actor1}%", f"%{actor2}%"))
     result = []
 
     names_dict = {}
@@ -105,13 +106,13 @@ def get_title_for_tyl(movie_type, year, genre):
     получает на выходе список названий картин с их описаниями в JSON
     """
 
-    sql = f"""
+    sql = ("""
     SELECT title, description
     FROM netflix
-    WHERE netflix.type = '{movie_type}'
-    AND release_year = '{year}'
-    AND listed_in LIKE '%{genre}%'
-    """
+    WHERE netflix.type = ?
+    AND release_year = ?
+    AND listed_in LIKE ?
+    """, (movie_type, year, f"%{genre}%"))
 
     result = []
 
@@ -120,3 +121,8 @@ def get_title_for_tyl(movie_type, year, genre):
 
     return json.dumps(result, ensure_ascii=False, indent=4)
 
+
+print(get_title_for_tyl("Movie", 2010, "Dramas"))
+
+
+#Rose McIver и Ben Lamb
